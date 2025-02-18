@@ -1,6 +1,6 @@
 # VINS-Mono-Learning
 
- VINS-Mono代码注释，仅供学习 
+ VINS-Mono代码注释，仅供学习 ，借鉴CSDN博主
 
 详细内容可参考微博
 [VINS-Mono论文学习与代码解读——目录与参考](https://blog.csdn.net/qq_41839222/article/details/85793998)
