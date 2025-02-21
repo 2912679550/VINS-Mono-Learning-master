@@ -1,9 +1,9 @@
 %YAML:1.0
 
 #common parameters
-imu_topic: "/imu0"
-image_topic: "/cam0/image_raw"
-output_path: "/home/tony-ws1/output/"
+imu_topic: "/camera/imu"  # "/imu0"
+image_topic: "/camera/color/image_raw"   # "/cam0/image_raw"
+output_path: "/home/vulcan/output/"
 
 #camera calibration 
 model_type: PINHOLE
