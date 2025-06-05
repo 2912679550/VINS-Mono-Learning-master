@@ -339,7 +339,7 @@ KeyFrame* PoseGraph::getKeyFrame(int index)
         return NULL;
 }
 
-//回环检测
+// 回环检测
 int PoseGraph::detectLoop(KeyFrame* keyframe, int frame_index)
 {
     // put image into image_pool; for visualization

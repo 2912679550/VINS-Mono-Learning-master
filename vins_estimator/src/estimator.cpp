@@ -801,14 +801,14 @@ void Estimator::optimization()
     ceres::Problem problem;
     ceres::LossFunction *loss_function;
     //loss_function = new ceres::HuberLoss(1.0);
-    loss_function = new ceres::CauchyLoss(1.0);
+    loss_function = new ceres::CauchyLoss(1.0); // 实际使用的cauchy损失函数
     
     //添加ceres参数块
     //因为ceres用的是double数组，所以在下面用vector2double做类型装换
     //Ps、Rs转变成para_Pose，Vs、Bas、Bgs转变成para_SpeedBias
     for (int i = 0; i < WINDOW_SIZE + 1; i++)
     {
-        ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
+        ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization(); // 定义四元数更新的一些本地化计算类
         problem.AddParameterBlock(para_Pose[i], SIZE_POSE, local_parameterization);
         problem.AddParameterBlock(para_SpeedBias[i], SIZE_SPEEDBIAS);
     }
@@ -842,6 +842,7 @@ void Estimator::optimization()
     {
         // construct new marginlization_factor
         MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_marginalization_info);
+        // 添加残差块等待下一次优化
         problem.AddResidualBlock(marginalization_factor, NULL,
                                  last_marginalization_parameter_blocks);
     }

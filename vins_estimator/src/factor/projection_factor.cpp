@@ -1,4 +1,5 @@
 #include "projection_factor.h"
+// 重投影误差 
 
 Eigen::Matrix2d ProjectionFactor::sqrt_info;
 double ProjectionFactor::sum_t;
@@ -137,6 +138,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
     return true;
 }
 
+// Jacob矩阵检验
 void ProjectionFactor::check(double **parameters)
 {
     double *res = new double[15];
