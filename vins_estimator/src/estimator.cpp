@@ -100,9 +100,10 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
 
     if (frame_count != 0)
     {
+        // 将外部输入的IMU数据添加到预积分对象中
         pre_integrations[frame_count]->push_back(dt, linear_acceleration, angular_velocity);
         //if(solver_flag != NON_LINEAR)
-            tmp_pre_integration->push_back(dt, linear_acceleration, angular_velocity);
+        tmp_pre_integration->push_back(dt, linear_acceleration, angular_velocity);
 
         dt_buf[frame_count].push_back(dt);
         linear_acceleration_buf[frame_count].push_back(linear_acceleration);

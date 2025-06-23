@@ -121,7 +121,7 @@ getMeasurements()
     while (true)
     {
         if (imu_buf.empty() || feature_buf.empty())
-            return measurements;
+            return measurements; // 此时应该为空的
 
         //对齐标准：IMU最后一个数据的时间要大于第一个图像特征数据的时间
         if (!(imu_buf.back()->header.stamp.toSec() > feature_buf.front()->header.stamp.toSec() + estimator.td))
@@ -259,16 +259,18 @@ void process()
 {
     while (true)
     {
-        std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>> measurements;
+        // 测量量为 一系列对应的IMU数据和前端发来的点云数据(在归一化坐标系下表示的特征点)
+        std::vector< std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr> > measurements;
         
         std::unique_lock<std::mutex> lk(m_buf);
 
-        //等待上面两个接收数据完成就会被唤醒
-        //在提取measurements时互斥锁m_buf会锁住，此时无法接收数据
+        // 等待上面两个接收数据完成就会被唤醒
+        // 在提取measurements时互斥锁m_buf会锁住，此时无法接收数据
+        // 这里的con主要用于实现线程同步，会使得线程阻塞，直到下面的return返回true
         con.wait(lk, [&]
-                 {
+        {
             return (measurements = getMeasurements()).size() != 0;
-                 });
+        });
         lk.unlock();
 
         m_estimator.lock();
@@ -279,7 +281,7 @@ void process()
             double dx = 0, dy = 0, dz = 0, rx = 0, ry = 0, rz = 0;
             for (auto &imu_msg : measurement.first)
             {
-                double t = imu_msg->header.stamp.toSec();
+                double t = imu_msg->header.stamp.toSec();   
                 double img_t = img_msg->header.stamp.toSec() + estimator.td;
 
                 //发送IMU数据进行预积分
@@ -299,24 +301,25 @@ void process()
                     //imu预积分
                     estimator.processIMU(dt, Vector3d(dx, dy, dz), Vector3d(rx, ry, rz));
                     //printf("imu: dt:%f a: %f %f %f w: %f %f %f\n",dt, dx, dy, dz, rx, ry, rz);
-
                 }
-                else
+                else    // 最后一帧的imu t应该大于图像的t
                 {
                     double dt_1 = img_t - current_time;
                     double dt_2 = t - img_t;
-                    current_time = img_t;
-                    ROS_ASSERT(dt_1 >= 0);
+                    current_time = img_t;   // 更新current_time，确保current time存储的始终为当前的measurement中最早的时间
+                    ROS_ASSERT(dt_1 >= 0);  // 只在debug编译模式下生效，如果结果为false，则会报错并终止程序
                     ROS_ASSERT(dt_2 >= 0);
                     ROS_ASSERT(dt_1 + dt_2 > 0);
                     double w1 = dt_2 / (dt_1 + dt_2);
                     double w2 = dt_1 / (dt_1 + dt_2);
+                    // 做了一个加权平均，此时的dx是上一帧的imu数据，而imu_msg是当前帧的imu数据
                     dx = w1 * dx + w2 * imu_msg->linear_acceleration.x;
                     dy = w1 * dy + w2 * imu_msg->linear_acceleration.y;
                     dz = w1 * dz + w2 * imu_msg->linear_acceleration.z;
                     rx = w1 * rx + w2 * imu_msg->angular_velocity.x;
                     ry = w1 * ry + w2 * imu_msg->angular_velocity.y;
                     rz = w1 * rz + w2 * imu_msg->angular_velocity.z;
+                    //注意这里使用的就是dt_1了，目的是保证处理后IMU数据与图像数据的时间戳对齐
                     estimator.processIMU(dt_1, Vector3d(dx, dy, dz), Vector3d(rx, ry, rz));
                     //printf("dimu: dt:%f a: %f %f %f w: %f %f %f\n",dt_1, dx, dy, dz, rx, ry, rz);
                 }

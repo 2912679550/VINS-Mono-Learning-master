@@ -17,9 +17,11 @@ bool inBorder(const cv::Point2f &pt)
 void reduceVector(vector<cv::Point2f> &v, vector<uchar> status)
 {
     int j = 0;
+    // 这里相当于使用后边status为正常的状态直接紧密地复制到容器的前面
     for (int i = 0; i < int(v.size()); i++)
         if (status[i])
             v[j++] = v[i];
+    // 全部复制完成后直接缩小容器大小
     v.resize(j);
 }
 
@@ -36,6 +38,7 @@ void reduceVector(vector<int> &v, vector<uchar> status)
 //空的构造函数
 FeatureTracker::FeatureTracker()
 {
+    
 }
 
 /**
@@ -59,10 +62,11 @@ void FeatureTracker::setMask()
         cnt_pts_id.push_back(make_pair(track_cnt[i], make_pair(forw_pts[i], ids[i])));
 
     //对光流跟踪到的特征点forw_pts，按照被跟踪到的次数cnt从大到小排序（lambda表达式）
-    sort(cnt_pts_id.begin(), cnt_pts_id.end(), [](const pair<int, pair<cv::Point2f, int>> &a, const pair<int, pair<cv::Point2f, int>> &b)
-        {
-        return a.first > b.first;
-        });
+    sort(cnt_pts_id.begin(), cnt_pts_id.end(), 
+            [](const pair<int, pair<cv::Point2f, int>> &a, const pair<int, pair<cv::Point2f, int>> &b){
+                return a.first > b.first;
+            }
+        );
 
     //清空cnt，pts，id并重新存入
     forw_pts.clear();
@@ -128,10 +132,11 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         img = _img;
 
     // 首帧判断与更新
-        if (forw_img.empty())
+    if (forw_img.empty())
     {
         //如果当前帧的图像数据forw_img为空，说明当前是第一次读入图像数据
-        //将读入的图像赋给当前帧forw_img，同时还赋给prev_img、cur_img
+        //将读入的图像赋给当前帧forw_img，同时还赋给prev_img、cur_img  
+        // forw为光流追踪的后一帧图像数据，cur为光流追踪的前一帧图像数据，prev为上一帧发布的图像数据
         prev_img = cur_img = forw_img = img;
     }
     else
@@ -151,6 +156,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
 
         //调用cv::calcOpticalFlowPyrLK()对前一帧的特征点cur_pts进行LK金字塔光流跟踪，得到forw_pts
         //status标记了从前一帧cur_img到forw_img特征点的跟踪状态，无法被追踪到的点标记为0
+        // cv::Size(21, 21), 3的含义是金字塔光流法的窗口大小和金字塔层数
         cv::calcOpticalFlowPyrLK(cur_img, forw_img, cur_pts, forw_pts, status, err, cv::Size(21, 21), 3);
 
         //将位于图像边界外的点标记为0
@@ -167,7 +173,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         reduceVector(forw_pts, status);
         reduceVector(ids, status);
         reduceVector(cur_un_pts, status);
-        reduceVector(track_cnt, status);
+        reduceVector(track_cnt, status);    // 理论上track_cnt始终与forw_pts一一对应
         ROS_DEBUG("temporal optical flow costs: %fms", t_o.toc());
     }
 
