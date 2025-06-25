@@ -325,16 +325,15 @@ void process()
                 }
             }
 
+            // 重定位部分，暂时先不看
             // set relocalization frame
             sensor_msgs::PointCloudConstPtr relo_msg = NULL;
-            
-            //取出最后一个重定位帧
+            // 取出最后一个重定位帧
             while (!relo_buf.empty())
             {
                 relo_msg = relo_buf.front();
                 relo_buf.pop();
             }
-
             if (relo_msg != NULL)
             {
                 vector<Vector3d> match_points;
@@ -352,20 +351,17 @@ void process()
                 Matrix3d relo_r = relo_q.toRotationMatrix();
                 int frame_index;
                 frame_index = relo_msg->channels[0].values[7];
-
                 estimator.setReloFrame(frame_stamp, frame_index, match_points, relo_t, relo_r);
             }
-
             ROS_DEBUG("processing vision data with stamp %f \n", img_msg->header.stamp.toSec());
 
             TicToc t_s;
-
             //建立每个特征点的(camera_id,[x,y,z,u,v,vx,vy])s的map，索引为feature_id
-            map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> image;
+            map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>> > image;
             for (unsigned int i = 0; i < img_msg->points.size(); i++)
             {
                 int v = img_msg->channels[0].values[i] + 0.5;
-                int feature_id = v / NUM_OF_CAM;
+                int feature_id = v / NUM_OF_CAM; // 这里的取ID号的算法设计很巧妙
                 int camera_id = v % NUM_OF_CAM;
                 double x = img_msg->points[i].x;
                 double y = img_msg->points[i].y;

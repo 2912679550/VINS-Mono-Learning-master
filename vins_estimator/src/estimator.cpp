@@ -100,19 +100,23 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
 
     if (frame_count != 0)
     {
-        // 将外部输入的IMU数据添加到预积分对象中
+        // 将外部输入的IMU数据添加到预积分对象中,并进行预积分传播递推
         pre_integrations[frame_count]->push_back(dt, linear_acceleration, angular_velocity);
         //if(solver_flag != NON_LINEAR)
         tmp_pre_integration->push_back(dt, linear_acceleration, angular_velocity);
 
+        // 保存当前帧对应的IMU数据
         dt_buf[frame_count].push_back(dt);
         linear_acceleration_buf[frame_count].push_back(linear_acceleration);
         angular_velocity_buf[frame_count].push_back(angular_velocity);
 
         int j = frame_count; 
                 
+        // 考虑重力加速度影响的中值积分传播，其实与预积分类内部中值积分函数的开头是相似的
+        // 只是这里多了重力加速度，这里的Rs[j]就可以理解为滑窗中当前帧的先验姿态
+        // 随着IMU的数据不断读入，一方面在预积分类内部递推更新雅可比与协方差
+        // 另一方面在这更新积累滑窗当前最新帧的位姿等数据
         Vector3d un_acc_0 = Rs[j] * (acc_0 - Bas[j]) - g;
-
         //采用的是中值积分的传播方式
         Vector3d un_gyr = 0.5 * (gyr_0 + angular_velocity) - Bgs[j];
         Rs[j] *= Utility::deltaQ(un_gyr * dt).toRotationMatrix();

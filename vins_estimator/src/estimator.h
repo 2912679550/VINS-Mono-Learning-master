@@ -87,7 +87,7 @@ class Estimator
     Vector3d back_P0, last_P, last_P0;
     std_msgs::Header Headers[(WINDOW_SIZE + 1)];
 
-    IntegrationBase *pre_integrations[(WINDOW_SIZE + 1)];
+    IntegrationBase *pre_integrations[(WINDOW_SIZE + 1)];   //  按照窗口大小存储每一帧图像对应的多帧IMU测量值，并用来做后续的预积分
     Vector3d acc_0, gyr_0;
 
     //窗口中的dt,a,v

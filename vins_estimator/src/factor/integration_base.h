@@ -32,6 +32,7 @@ class IntegrationBase
         noise.block<3, 3>(15, 15) =  (GYR_W * GYR_W) * Eigen::Matrix3d::Identity();
     }
 
+    // 存储导入的数据，并直接进行一次预积分递推
     void push_back(double dt, const Eigen::Vector3d &acc, const Eigen::Vector3d &gyr)
     {
         dt_buf.push_back(dt);
@@ -71,6 +72,9 @@ class IntegrationBase
                             Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian)
     {
         //ROS_INFO("midpoint integration");
+        // 使用中值积分递推离散IMU运动模型，参考obs笔记：手写VIO-2：运动模型离散时间处理
+        // 注意这里没有考虑重力项，在这里只考虑IMU测量量的“相对变化”，重力项的影响将会在evaluate函数中的残差项补充
+        // 这样使得预积分量与重力无关，便于在优化过程中重力方向变化时复用预积分结果
         Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba);
         Vector3d un_gyr = 0.5 * (_gyr_0 + _gyr_1) - linearized_bg;
         result_delta_q = delta_q * Quaterniond(1, un_gyr(0) * _dt / 2, un_gyr(1) * _dt / 2, un_gyr(2) * _dt / 2);
@@ -89,16 +93,17 @@ class IntegrationBase
             Matrix3d R_w_x, R_a_0_x, R_a_1_x;
 
             //反对称矩阵
-            R_w_x<<0, -w_x(2), w_x(1),
-                w_x(2), 0, -w_x(0),
-                -w_x(1), w_x(0), 0;
-            R_a_0_x<<0, -a_0_x(2), a_0_x(1),
-                a_0_x(2), 0, -a_0_x(0),
-                -a_0_x(1), a_0_x(0), 0;
-            R_a_1_x<<0, -a_1_x(2), a_1_x(1),
-                a_1_x(2), 0, -a_1_x(0),
-                -a_1_x(1), a_1_x(0), 0;
-
+            R_w_x   <<0, -w_x(2), w_x(1),
+                    w_x(2), 0, -w_x(0),
+                    -w_x(1), w_x(0), 0;
+            R_a_0_x <<0, -a_0_x(2), a_0_x(1),
+                    a_0_x(2), 0, -a_0_x(0),
+                    -a_0_x(1), a_0_x(0), 0;
+            R_a_1_x <<0, -a_1_x(2), a_1_x(1),
+                    a_1_x(2), 0, -a_1_x(0),
+                    -a_1_x(1), a_1_x(0), 0;
+            // 这里从手写VIO-3笔记的公式33看起（IMU预积分残差定义处，残差被定义为一个15×1的列向量）
+            // 这部分为什么这样写，可以参考手写VIO-3笔记的公式45~47
             MatrixXd F = MatrixXd::Zero(15, 15);
             F.block<3, 3>(0, 0) = Matrix3d::Identity();
             F.block<3, 3>(0, 3) = -0.25 * delta_q.toRotationMatrix() * R_a_0_x * _dt * _dt + 
@@ -116,7 +121,7 @@ class IntegrationBase
             F.block<3, 3>(9, 9) = Matrix3d::Identity();
             F.block<3, 3>(12, 12) = Matrix3d::Identity();
             //cout<<"A"<<endl<<A<<endl;
-            
+            // 这部分为什么这样写，可以参考手写VIO-3笔记的公式45~47，这里的V就是笔记中的传播矩阵G
             MatrixXd V = MatrixXd::Zero(15,18);
             V.block<3, 3>(0, 0) =  0.25 * delta_q.toRotationMatrix() * _dt * _dt;
             V.block<3, 3>(0, 3) =  0.25 * -result_delta_q.toRotationMatrix() * R_a_1_x  * _dt * _dt * 0.5 * _dt;
@@ -133,7 +138,9 @@ class IntegrationBase
 
             //step_jacobian = F;
             //step_V = V;
+            // 雅可比递推，笔记：手写VIO-3，公式78 
             jacobian = F * jacobian;
+            // 协方差传播公式，类似于卡尔曼滤波的协方差传播
             covariance = F * covariance * F.transpose() + V * noise * V.transpose();
         }
 
@@ -176,6 +183,7 @@ class IntegrationBase
         linearized_bg = result_linearized_bg;
         delta_q.normalize();
         sum_dt += dt;
+        // 结果存在acc_0和gyr_0中，供下次使用
         acc_0 = acc_1;
         gyr_0 = gyr_1;  
      
