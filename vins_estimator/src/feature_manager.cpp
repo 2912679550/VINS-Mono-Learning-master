@@ -60,14 +60,16 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
     //把image map中的所有特征点放入feature list容器中
     for (auto &id_pts : image)
     {
+        // 这里的id_pts的数据格式为 （id , vector<pair<>>）
+        // 则id_pts.second[0].first为camera_id, id_pts.second[0].second为[x,y,z,u,v,vx,vy]的7维向量
         FeaturePerFrame f_per_fra(id_pts.second[0].second, td);
 
         //迭代器寻找feature list中是否有这feature_id
-        int feature_id = id_pts.first;
+        int feature_id = id_pts.first;  // id_pts.first即为外部配置的feature_id
         auto it = find_if(feature.begin(), feature.end(), [feature_id](const FeaturePerId &it)
-                          {
+            {
             return it.feature_id == feature_id;
-                          });
+            });
 
         //如果没有则新建一个，并添加这图像帧
         if (it == feature.end())
@@ -85,6 +87,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
 
 
     if (frame_count < 2 || last_track_num < 20)
+    // 如果当前滑窗中的帧数较少或当前跟踪的特征点数目较少，不进行视差比较计算，直接返回true来判断是否是关键帧
         return true;
 
     //计算每个特征在次新帧和次次新帧中的视差
