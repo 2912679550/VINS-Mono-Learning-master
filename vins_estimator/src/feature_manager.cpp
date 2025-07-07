@@ -57,12 +57,13 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
     double parallax_sum = 0;
     int parallax_num = 0;
     last_track_num = 0;
-    //把image map中的所有特征点放入feature list容器中
+    // todo 特征点信息接收与按id存放
+    // 把image map中的所有特征点放入feature list容器中
     for (auto &id_pts : image)
     {
         // 这里的id_pts的数据格式为 （id , vector<pair<>>）
         // 则id_pts.second[0].first为camera_id, id_pts.second[0].second为[x,y,z,u,v,vx,vy]的7维向量
-        FeaturePerFrame f_per_fra(id_pts.second[0].second, td);
+        FeaturePerFrame f_per_fra(id_pts.second[0].second, td);     // 根据这个7维向量可以创建一个特征类per_fra
 
         //迭代器寻找feature list中是否有这feature_id
         int feature_id = id_pts.first;  // id_pts.first即为外部配置的feature_id
@@ -84,8 +85,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
             last_track_num++;
         }
     }
-
-
+    
     if (frame_count < 2 || last_track_num < 20)
     // 如果当前滑窗中的帧数较少或当前跟踪的特征点数目较少，不进行视差比较计算，直接返回true来判断是否是关键帧
         return true;
@@ -412,6 +412,7 @@ double FeatureManager::compensatedParallax2(const FeaturePerId &it_per_id, int f
     Vector3d p_i = frame_i.point;
     Vector3d p_i_comp;
 
+    // 预留的多相机系统中的补偿视差计算
     //int r_i = frame_count - 2;
     //int r_j = frame_count - 1;
     //p_i_comp = ric[camera_id_j].transpose() * Rs[r_j].transpose() * Rs[r_i] * ric[camera_id_i] * p_i;

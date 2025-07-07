@@ -146,11 +146,11 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
     //添加之前检测到的特征点到feature容器中，计算每一个点跟踪的次数，以及它的视差
     //通过检测两帧之间的视差决定次新帧是否作为关键帧
     if (f_manager.addFeatureCheckParallax(frame_count, image, td))
-        marginalization_flag = MARGIN_OLD;//=0
+        marginalization_flag = MARGIN_OLD;          //=0    需要抹掉最老的帧
     else
-        marginalization_flag = MARGIN_SECOND_NEW;//=1
+        marginalization_flag = MARGIN_SECOND_NEW;   //=1    需要抹掉次新帧    
 
-    ROS_DEBUG("this frame is--------------------%s", marginalization_flag ? "reject" : "accept");
+    ROS_DEBUG("this frame is--------------------%s", marginalization_flag ? "reject" /* 0 */ : "accept" /* 1 */);
     ROS_DEBUG("%s", marginalization_flag ? "Non-keyframe" : "Keyframe");
     ROS_DEBUG("Solving %d", frame_count);
     ROS_DEBUG("number of feature: %d", f_manager.getFeatureCount());
@@ -182,7 +182,7 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
                 RIC[0] = calib_ric;
                 ESTIMATE_EXTRINSIC = 1;
             }
-        }
+        } 
     }
 
     if (solver_flag == INITIAL)//初始化

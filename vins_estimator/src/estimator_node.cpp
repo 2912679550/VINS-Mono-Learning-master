@@ -354,6 +354,7 @@ void process()
                 estimator.setReloFrame(frame_stamp, frame_index, match_points, relo_t, relo_r);
             }
             ROS_DEBUG("processing vision data with stamp %f \n", img_msg->header.stamp.toSec());
+            // 重定位部分，暂时不看
 
             TicToc t_s;
             //建立每个特征点的(camera_id,[x,y,z,u,v,vx,vy])s的map，索引为feature_id

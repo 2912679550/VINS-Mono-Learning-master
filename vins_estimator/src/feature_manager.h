@@ -36,12 +36,12 @@ class FeaturePerFrame
         cur_td = td;
     }
     double cur_td;
-    Vector3d point;
-    Vector2d uv;
-    Vector2d velocity;
-    double z;
+    Vector3d point;     // 归一化坐标
+    Vector2d uv;        // 像素坐标
+    Vector2d velocity;  // 像素速度
+    double z;           // ？ 这个z是深度吗
     bool is_used;
-    double parallax;
+    double parallax;    // 视差
     MatrixXd A;
     VectorXd b;
     double dep_gradient;
@@ -80,27 +80,36 @@ class FeatureManager
 {
   public:
     FeatureManager(Matrix3d _Rs[]);
-
-    void setRic(Matrix3d _ric[]);
-
-    void clearState();
-
-    int getFeatureCount();
-
+    // * 特征点添加与视差检查
     bool addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, double td);
-    void debugShow();
+    
+    // * 深度管理
+    void triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[]);
+    void setDepth(const VectorXd &x);
+    VectorXd getDepthVector();
+    void clearDepth(const VectorXd &x);
+    
+    // * 滑窗操作与管理
+    void removeFront(int frame_count);  // 移除最新帧
+    void removeBack();                  // 移除最旧帧
+    // 移除帧时的深度变换
+    void removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P);
+    
+    // * 数据清理
+    void removeFailures();  // 清除三角化失败的点
+    void removeOutlier();   // 移除外点
+    void clearState();      // 清除所有状态
+    
+    // * 数据查询
+    int getFeatureCount();
     vector<pair<Vector3d, Vector3d>> getCorresponding(int frame_count_l, int frame_count_r);
 
+    
+    void setRic(Matrix3d _ric[]);
+    void debugShow();
+
     //void updateDepth(const VectorXd &x);
-    void setDepth(const VectorXd &x);
-    void removeFailures();
-    void clearDepth(const VectorXd &x);
-    VectorXd getDepthVector();
-    void triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[]);
-    void removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P);
-    void removeBack();
-    void removeFront(int frame_count);
-    void removeOutlier();
+    // * 核心数据结构
     list<FeaturePerId> feature;// 通过FeatureManager可以得到滑动窗口内所有的角点信息
     int last_track_num;
 
